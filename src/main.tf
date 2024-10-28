@@ -1,43 +1,26 @@
-terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
-  }
-}
-
-# Configure the AWS Provider
-provider "aws" {
-  region = "us-east-1"
-}
-
 module "vpc" {
   source = "terraform-aws-modules/vpc/aws"
 
 
-  name = "eks-terraform-vpc"
-  cidr = "10.0.0.0/16"
+  name = var.aws_vpc_name
+  cidr = var.aws_vpc_cidr
 
-  azs             = ["us-east-1a", "us-east-1b", "us-east-1c"]
-  private_subnets = ["10.0.1.0/24", "10.0.2.0/24", "10.0.3.0/24"]
-  public_subnets  = ["10.0.101.0/24", "10.0.102.0/24", "10.0.103.0/24"]
+  azs             = var.aws_vpc_azs
+  private_subnets = var.aws_vpc_private_subnets
+  public_subnets  = var.aws_vpc_public_subnets
 
   enable_nat_gateway = true
   enable_vpn_gateway = true
 
-  tags = {
-    Terraform   = "true"
-    Environment = "dev"
-  }
+  tags = var.aws_projects_tags
 }
 
 module "eks" {
   source  = "terraform-aws-modules/eks/aws"
   version = "20.26.1"
 
-  cluster_name    = "eks-terraform"
-  cluster_version = "1.31"
+  cluster_name    = var.aws_eks_name
+  cluster_version = var.aws_eks_version
 
   enable_cluster_creator_admin_permissions = true
 
@@ -51,7 +34,67 @@ module "eks" {
       min_size       = 2
       max_size       = 2
       desired_size   = 2
-      instance_types = ["t2.micro"]
+      instance_types = var.aws_eks_managed_node_groups_instance_types
     }
   }
+}
+
+variable "aws_region" {
+  description = "Região utilizada para criar os recursos da AWS"
+  type        = string
+  nullable    = false
+}
+
+variable "aws_vpc_name" {
+  description = "Nome da VPC que será utilizado"
+  type        = string
+  nullable    = false
+}
+
+variable "aws_vpc_cidr" {
+  description = "Faixa de IP utilizada na VPC"
+  type        = string
+  nullable    = false
+}
+
+variable "aws_vpc_azs" {
+  description = "Zonas de disponibilidades"
+  type        = set(string)
+  nullable    = false
+}
+
+variable "aws_vpc_private_subnets" {
+  description = "Lista das subnets privadas"
+  type        = set(string)
+  nullable    = false
+}
+
+variable "aws_vpc_public_subnets" {
+  description = "Lista das subnets publicas"
+  type        = set(string)
+  nullable    = false
+}
+
+variable "aws_eks_name" {
+  description = "Nome do cluster kurbenets"
+  type        = string
+  nullable    = false
+}
+
+variable "aws_eks_version" {
+  description = "Versão do cluster kurbenets"
+  type        = string
+  nullable    = false
+}
+
+variable "aws_eks_managed_node_groups_instance_types" {
+  description = "Definição dos nodes do cluster kurbenets"
+  type        = set(string)
+  nullable    = false
+}
+
+variable "aws_projects_tags" {
+  description = "Definição de todas as tags utilizadas no projeto"
+  type        = map(any)
+  nullable    = false
 }
